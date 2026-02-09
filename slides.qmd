@@ -157,9 +157,7 @@ These variables form a regression model with published coefficients from validat
 
 ## Probability of survival
 
-Modern trauma registries and EHRs will do this calculation for you.
-
-The survival prognosis is computed based on a logistic regression equation of the form: 
+Modern trauma registries and EHRs will do this calculation for you. Blunt and penetrating injuries use different coefficients to estimate the predicted probabilities. The survival prognosis is computed based on a logistic regression equation of the form: 
 $$
 \text{Survival Probability} = \frac{1}{1 + e^{-b}}
 $$
@@ -168,8 +166,6 @@ where
 $$
 b = \beta_{0} + \beta_{1} \times \text{RTS} + \beta_{2} \times \text{ISS} + \beta_{3} \times \text{AgeIndex}
 $$
-
-Blunt and penetrating injuries use different coefficients to estimate the predicted probabilities.
 
 ## From Individual to System-Level Benchmark
 
@@ -989,128 +985,6 @@ It is also possible to calculate RMM by age group, in this case simply by whethe
 ::: {.notes}
 It is also possible to calculate RMM by biological sex, which could be further grouped by age groups to see what disparities may exist among age groups and gender groups.
 :::
-
-<!-- Create the sf object for the leaflet map -->
-
-```{r create_sf}
-
-#| label: create_sf
-
-# Get Iowa counties as sf object
-iowa_counties <- tigris::counties(state = "IA", cb = TRUE, class = "sf")
-
-# Join rates and reproject to WGS84
-rmm_districts_sf <- iowa_counties |>
-  dplyr::left_join(
-    rmm_districts,
-    by = dplyr::join_by(NAME == County)
-  ) |>
-  sf::st_transform(crs = 4326) # WGS84 for Leaflet
-
-```
-
-<!-- Helper functions for palettes within leaflet -->
-
-```{r map_pals}
-
-#| label: map_pals
-
-# Injury palette function (magma)
-pal_injury <- leaflet::colorNumeric(
-  palette = viridis::magma(256, direction = 1),
-  domain = c(
-    min(rmm_districts_sf$population_RMM, na.rm = TRUE),
-    max(rmm_districts_sf$population_RMM, na.rm = TRUE)
-  ),
-  na.color = "white"
-)
-
-```
-
-<!-- Create the leaflet map -->
-
-```{r leaflet_map}
-
-#| label: leaflet_map
-
-# Build the leaflet map
-
-# Start leaflet map
-map_start <- leaflet::leaflet(
-  options = leaflet::leafletOptions(
-    zoomControl = FALSE
-  )
-) |>
-  leaflet::addTiles()
-
-# add polygons
-map <- map_start |>
-  leaflet::addPolygons(
-    data = rmm_districts_sf,
-    fillColor = ~ pal_injury(population_RMM),
-    weight = 1,
-    color = "white",
-    fillOpacity = 0.85,
-    group = 1,
-    label = ~ paste(
-      NAMELSAD,
-      paste0("RMM: ", round(population_RMM, digits = 2)),
-      paste0(
-        "95% CI: [",
-        round(population_RMM_LL, 2),
-        "-",
-        round(population_RMM_UL, digits = 2),
-        "]"
-      ),
-      sep = " || "
-    ),
-    labelOptions = leaflet::labelOptions(
-      direction = "auto",
-      opacity = 0.8,
-      textsize = "12px",
-      style = list("font-family" = "Work Sans"),
-      offset = c(0, 0)
-    )
-  )
-
-# Add single legends for Injury and Falls (full range)
-trauma_map <- map |>
-  leaflet::addLegend(
-    pal = pal_injury,
-    values = rmm_districts_sf$population_RMM[
-      !is.na(rmm_districts_sf$population_RMM)
-    ],
-    title = "Relative Mortality Metric",
-    position = "topleft",
-    opacity = 0.7,
-    group = "Legend"
-  ) |>
-  htmlwidgets::onRender(
-    "
-    function(el,x){
-      var ctl = el.getElementsByClassName('leaflet-control-layers')[0];
-      if(ctl) ctl.style.opacity = 0.8;
-    }
-    "
-  )
-
-# Wrap with alt text for accessibility and force map height
-trauma_map <- htmltools::tags$div(
-  role = "img",
-  `aria-label` = "Interactive choropleth map of Iowa counties showing calculated relative mortality metric with data from 2020 to 2024.",
-  `aria-describedby` = "map-desc",
-  style = "height: 80vh;",
-  trauma_map
-)
-```
-
-## Relative Mortality Performance by County
-
-```{r print_map, include=TRUE}
-
-trauma_map
-
-```
 
 ```{r lives_saved_estimation}
 
