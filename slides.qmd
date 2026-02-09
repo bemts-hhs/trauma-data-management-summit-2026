@@ -32,101 +32,139 @@ execute:
 
 # Objectives
 
-Today we will look at...
+-   Explain the benefits of using robust risk-adjusted metrics to analyze trauma patient cohorts
+-   Use common tools to compute both the predicted probability of survival and the W score
+-   Identify ways to use these metrics to inform performance improvement efforts in trauma care
 
--   injury data where injuries were cared for in Iowa
--   conventional measures of risk-adjusted mortality
--   introduction to Napoli et. al (2017) relative mortality metric
--   examine Iowa trauma system performance
-    -   geographic areas
-    -   demographics and mechanism
 
-::: notes
+
+
+::: {.notes}
 Remember to mention that data in this presentation pertain only to injuries that were cared for in Iowa hospitals take care of patients from across our borders frequently. Overall statistics reported in the annual trauma report will vary from those reported here.
 :::
+
 
 # Accessing this presentation
 
 ![](figures/qrcode.svg){fig-align="center" fig-alt="QR Code for the slides to this presentation."}
 
-::: notes
-BEMTS epidemiologist (me) is the author and maintainer of the traumar and nemsqar packages 
-We will use traumar during this presentation later when we calculate mortality rates and risk-adjusted mortality 
-You can access the slides directly from the link above Feel free to take a look at the slideshow while we are here!
-:::
-
-# About Iowa
-
-::: {.incremental}
-
-- Inclusive trauma system
-- 121 facilities
-- 2 Level I, 1 Level II, 15 Level III (1 ACS verified)
-- 100 Level IV (State verified)
-- All facilities must report to the trauma registry
-
-:::
-
-# About Iowa
-
-::: {.incremental}
-
-- 116 facilities type in data to the registry
-- 5 facilities use 3rd party registry, upload
-- 97.75% of records have validity 85% or greater
-- In 2025, 92% concurrency statewide
-
-:::
-
-# About the data
-
-Source: Iowa Trauma Registry from 2020-2024.
-
-::: incremental
--   Check out [Trauma Data Registry](https://hhs.iowa.gov/health-prevention/providers-professionals/emergency-medical-services-trauma/trauma-system-resources/trauma-data-registry) for inclusion criteria.
--   The trauma registry...
-    -   ...houses data on the most severe injuries.
-    -   ...does not register all injuries in Iowa.
-        -   Iowa Hospital Association's Inpatient Outpatient dataset = comprehensive
+::: {.notes}
+BEMTS epidemiologist (me) is the author and maintainer of the traumar and nemsqar packages We will use traumar during this presentation later when we calculate mortality rates and risk-adjusted mortality You can access the slides directly from the link above Feel free to take a look at the slideshow while we are here!
 :::
 
 # Why Risk Adjustment Matters
 
-- Raw mortality rates can mislead comparisons between hospitals.  
-- Centers treat different mixes of patients — older adults, severe trauma, or complex injuries.  
+-   Raw mortality rates can mislead comparisons between hospitals.
+    -   Example: Hospital A has a raw mortality rate of 5%, while Hospital B has a rate of 10%. At first glance, it seems Hospital A is performing better.
+    -   However, Hospital B treats a higher proportion of older adults and severe trauma cases, which naturally have higher mortality rates.
+
+# Why Risk Adjustment Matters
+Basic data example
+
+```{r demo_hospital_data, include=TRUE}
+# Example R code to illustrate raw mortality rates
+hospital_data <- data.frame(
+  Hospital = c("A", "B"),
+  Raw_Mortality_Rate = traumar::pretty_percent(c(0.05, 0.10), n_decimal = 2)
+)
+
+knitr::kable(x = hospital_data, format = "html")
+```
 
 # Why Risk Adjustment Matters
 
-- Fair benchmarking requires adjustment for **patient risk**.  
+- Centers treat different mixes of patients — older adults, severe trauma, or complex injuries.
+    - Example: Hospital A primarily treats young, healthy individuals with minor injuries, while Hospital B treats older adults with complex injuries. Without adjusting for these differences, comparing their raw mortality rates would be unfair.
+
+# Why Risk Adjustment Matters
+Patient data example
+
+```{r demo_patient_data, include=TRUE}
+
+#| demo_patient_data
+
+# Example R code to illustrate patient mix
+patient_data <- data.frame(
+  Hospital = c("A", "B"),
+  Age_Group = c("Young", "Older Adults"),
+  Injury_Severity = c("Minor", "Severe")
+)
+
+knitr::kable(x = patient_data, format = "html")
+```
+
+# Why Risk Adjustment Matters
+
+- Fair benchmarking requires adjustment for **patient risk**.\
+    - Example: By using risk-adjusted metrics, we can account for the differences in patient populations. Considering the higher risk of their patients, it may actually be performing better than we thought, and not significantly different from Hospital A.
+
+# Why Risk Adjustment Matters
+Example of adjusted rates
+
+```{r demo_adjusted_mortality, include=TRUE}
+
+#| demo_adjusted_mortality
+
+# Example R code to illustrate risk-adjusted mortality rates
+adjusted_mortality_data <- data.frame(
+  Hospital = c("A", "B"),
+  Adjusted_Mortality_Rate = traumar::pretty_percent(
+    c(0.06, 0.07),
+    n_decimal = 2
+  )
+)
+
+knitr::kable(x = adjusted_mortality_data, format = "html")
+```
+
+# Why Risk Adjustment Matters
+
 - The goal: compare performance **given who each center treats**, not just raw outcomes.
+    - Example: After adjusting for patient risk, we find that Hospital B's performance is on par with Hospital A, despite the higher raw mortality rate. This adjustment provides a more accurate and fair comparison of hospital performance.
+
+# Why Risk Adjustment Matters
+Example of raw and adjusted together
+
+```{r demo_adjusted_benchmarking, include=TRUE}
+
+#| demo_adjusted_benchmarking
+
+# Example R code to illustrate fair benchmarking
+benchmarking_data <- data.frame(
+  Hospital = c("A", "B"),
+  Raw_Mortality_Rate = traumar::pretty_percent(c(0.05, 0.10), n_decimal = 2),
+  Adjusted_Mortality_Rate = traumar::pretty_percent(
+    c(0.06, 0.07),
+    n_decimal = 2
+  )
+)
+
+knitr::kable(x = benchmarking_data, format = "html")
+```
 
 ## Concept of Risk Adjustment
 
-- For each patient, we estimate a **predicted probability of survival**, $P(\text{Survival})$.  
-- The estimate depends on key variables:
-  - Injury Severity Score (ISS)
-  - Revised Trauma Score (RTS)
-  - Age Index (<= 54, > 54)
-  - Mechanism (Blunt vs. Penetrating)
+-   For each patient, we estimate a **predicted probability of survival**, $P(\text{Survival})$.\
+-   The estimate depends on key variables:
+    -   Injury Severity Score (ISS)
+    -   Revised Trauma Score (RTS)
+    -   Age Index (\<= 54, \> 54)
+    -   Mechanism (Blunt vs. Penetrating)
 
 ::: {.notes}
-
 These variables form a regression model with published coefficients from validated Major Trauma Outcomes Study (MTOS) research.
-  
 :::
 
 ## Probability of survival
 
 Modern trauma registries and EHRs will do this calculation for you.
 
-The survival prognosis is computed based on a logistic regression equation of the form:
+The survival prognosis is computed based on a logistic regression equation of the form: 
 $$
 \text{Survival Probability} = \frac{1}{1 + e^{-b}}
 $$
 
-## Probability of survival
-
-where 
+where
 $$
 b = \beta_{0} + \beta_{1} \times \text{RTS} + \beta_{2} \times \text{ISS} + \beta_{3} \times \text{AgeIndex}
 $$
@@ -135,30 +173,31 @@ Blunt and penetrating injuries use different coefficients to estimate the predic
 
 ## From Individual to System-Level Benchmark
 
-- Compute $P(\text{Survival})$ for each patient.  
-- Sum these probabilities across all patients -> **Expected Survivors**.
-- Sum $1 - P(\text{Survival})$ across all patients -> **Expected Decedents**. 
-- Compare to **Observed Survivors and Decedents** from actual outcomes.  
+-   Compute $P(\text{Survival})$ for each patient.\
+-   Sum these probabilities across all patients -\> **Expected Survivors**.
+-   Sum $1 - P(\text{Survival})$ across all patients -\> **Expected Decedents**.
+-   Compare to **Observed Survivors and Decedents** from actual outcomes.
 
 ## Why This is a Benchmarking Standard
 
-- The **ACS Trauma Quality Improvement Program (TQIP)** uses similar models for national benchmarking.  
-- This approach adjusts for injury severity, physiology, and demographics.  
+-   The **ACS Trauma Quality Improvement Program (TQIP)** uses similar models for national benchmarking.\
+-   This approach adjusts for injury severity, physiology, and demographics.
 
 ## Why This is a Benchmarking Standard
 
-- It provides a fair, risk-adjusted performance measure.  
-- Centers can identify opportunities for improvement based on deviation from expected outcomes.  
-> [ACS Trauma Quality Programs](https://www.facs.org/quality-programs/trauma/quality/trauma-quality-improvement-program/)  
-> [Trauma Risk Adjustment Overview (PubMed Central)](https://pmc.ncbi.nlm.nih.gov/articles/PMC10649144/)
+-   It provides a fair, risk-adjusted performance measure.\
+-   Centers can identify opportunities for improvement based on deviation from expected outcomes.\
+    \> [ACS Trauma Quality Programs](https://www.facs.org/quality-programs/trauma/quality/trauma-quality-improvement-program/)\
+    \> [Trauma Risk Adjustment Overview (PubMed Central)](https://pmc.ncbi.nlm.nih.gov/articles/PMC10649144/)
 
 # But, how do I calculate risk-adjusted metrics, what are they?
+
 #mathishard
 
 # W-Score
 
-- The W-score quantifies **how a trauma center performs relative to expected outcomes**.  
-- It expresses the **difference between observed and expected survivors**, scaled to patient volume.
+-   The W-score quantifies **how a trauma center performs relative to expected outcomes**.\
+-   It expresses the **difference between observed and expected survivors**, scaled to patient volume.
 
 $$
 W = \frac{A - B}{C} \times 100
@@ -166,27 +205,27 @@ $$
 
 # W-Score
 
-Where:  
+Where:
 
-- $A$ = Total number of patients with all data necessary to calculate $P(Survival)$ **minus** the number of those patients who died
-- $B$ = Sum of all predicted survival probabilities $P(Survival)$ for this patient group  
-- $C$ = Total number of patients with all data necessary to calculate $P(Survival)$
+-   $A$ = Total number of patients with all data necessary to calculate $P(Survival)$ **minus** the number of those patients who died
+-   $B$ = Sum of all predicted survival probabilities $P(Survival)$ for this patient group\
+-   $C$ = Total number of patients with all data necessary to calculate $P(Survival)$
 
 # W-Score
 
-**Interpretation for clinicians:**  
+**Interpretation for clinicians:**
 
-- $W > 0$ -> More survivors than expected; center performing better than average  
-- $W < 0$ -> Fewer survivors than expected; center performing worse than average  
-- Provides a **volume-adjusted, risk-adjusted measure** similar in purpose to RMM.
+-   $W > 0$ -\> More survivors than expected; center performing better than average\
+-   $W < 0$ -\> Fewer survivors than expected; center performing worse than average\
+-   Provides a **volume-adjusted, risk-adjusted measure** similar in purpose to RMM.
 
 # Example: W-Score Calculation
 
 Let:
 
-- $n = 900$ total patients  
-- $n_{\text{deaths}} = 40$ deaths  
-- $\sum P(Survival) = 750.3638$ (sum of predicted survivals)
+-   $n = 900$ total patients\
+-   $n_{\text{deaths}} = 40$ deaths\
+-   $\sum P(Survival) = 750.3638$ (sum of predicted survivals)
 
 ## Step 1: Compute observed survivors
 
@@ -224,20 +263,20 @@ $$
 
 ## Step 5: Inference
 
-- $W = 12.18$  
-  -> The center achieved **about 12 more survivors per 100 patients** than expected.  
-- Indicates **better-than-expected performance** after adjusting for patient risk.
+-   $W = 12.18$\
+    -\> The center achieved **about 12 more survivors per 100 patients** than expected.\
+-   Indicates **better-than-expected performance** after adjusting for patient risk.
 
 ## W Score is limited
 
-- The W Score method is derived from the MTOS study, which was undergirded by linear methods
-- Divides patients into bins of **equal width** based on predicted survival probability, $P(Survival)$.  
-- Assumes that $P(Survival)$ is evenly distributed.  
+-   The W Score method is derived from the MTOS study, which was undergirded by linear methods
+-   Divides patients into bins of **equal width** based on predicted survival probability, $P(Survival)$.\
+-   Assumes that $P(Survival)$ is evenly distributed.
 
 ## W Score is limited
 
-- **Problem:** $P(Survival)$ from logistic regression is **not normally distributed** — many patients cluster near very high or very low survival probabilities.  
-- Linear bins overrepresent some risk groups and underrepresent others, which can distort observed vs expected comparisons.
+-   **Problem:** $P(Survival)$ from logistic regression is **not normally distributed** — many patients cluster near very high or very low survival probabilities.\
+-   Linear bins overrepresent some risk groups and underrepresent others, which can distort observed vs expected comparisons.
 
 ## Distribution of Predicted Survival
 
@@ -247,64 +286,64 @@ Most patients presenting to trauma centers have a **very high likelihood of surv
 
 ## MTOS Distribution
 
-| Ps Range       | Proportion of Patients |
-|:-|--:|
-| 0.96 – 1.00     | 0.842 |
-| 0.91 – 0.95     | 0.053 |
-| 0.76 – 0.90     | 0.052 |
-| 0.51 – 0.75     | 0.000 |
-| 0.26 – 0.50     | 0.043 |
-| 0.00 – 0.25     | 0.010 |
+| Ps Range    | Proportion of Patients |
+|:------------|-----------------------:|
+| 0.96 – 1.00 |                  0.842 |
+| 0.91 – 0.95 |                  0.053 |
+| 0.76 – 0.90 |                  0.052 |
+| 0.51 – 0.75 |                  0.000 |
+| 0.26 – 0.50 |                  0.043 |
+| 0.00 – 0.25 |                  0.010 |
 
 ## W-Score Can Be Misleading
 
-- The **W-score** is heavily influenced by the **majority of patients with very high $P(Survival)$** values (for example, $P(Survival) > 0.8$.  
-- Because most trauma patients are expected to survive, the W-score often reflects performance **among the least acute patients**, not those at highest risk.  
+-   The **W-score** is heavily influenced by the **majority of patients with very high** $P(Survival)$ values (for example, $P(Survival) > 0.8$.\
+-   Because most trauma patients are expected to survive, the W-score often reflects performance **among the least acute patients**, not those at highest risk.
 
 ## W-Score Can Be Misleading
 
-- This means two centers could have identical W-scores even if one performs **much better with severely injured patients**.  
+-   This means two centers could have identical W-scores even if one performs **much better with severely injured patients**.
 
 ## Assumption vs. Reality
 
-- The W-score assumes that $P(Survival)$ values are **linearly distributed** among patients across the 0–1 range.  
-- However, observed data show that $P(Survival)$ is **highly skewed**, with most patients near 1.0.  
-- Therefore, linear bins or evenly spaced $P(Survival)$ categories **overweight low-acuity patients** and **underweight critical cases**.
+-   The W-score assumes that $P(Survival)$ values are **linearly distributed** among patients across the 0–1 range.\
+-   However, observed data show that $P(Survival)$ is **highly skewed**, with most patients near 1.0.\
+-   Therefore, linear bins or evenly spaced $P(Survival)$ categories **overweight low-acuity patients** and **underweight critical cases**.
 
 ## Take-Home Message on the W Score
 
-- W-score alone provides a **partial picture** of trauma center performance.  
-- For a fair comparison, models such as the **Relative Mortality Metric (RMM)** use **non-linear binning** that reflects the true, **non-normal $P(Survival)$ distribution** observed in real trauma data.
+-   W-score alone provides a **partial picture** of trauma center performance.\
+-   For a fair comparison, models such as the **Relative Mortality Metric (RMM)** use **non-linear binning** that reflects the true, **non-normal** $P(Survival)$ distribution observed in real trauma data.
 
 # Relative Mortality Metric (RMM)
 
-- Napoli et al. (2017)
-- The RMM is a **risk-adjusted metric** that compares observed mortality to predicted mortality.
-- It accounts for patient-level severity, physiology, and demographics using previously validated coefficients.
+-   Napoli et al. (2017)
+-   The RMM is a **risk-adjusted metric** that compares observed mortality to predicted mortality.
+-   It accounts for patient-level severity, physiology, and demographics using previously validated coefficients.
 
 # Relative Mortality Metric (RMM)
 
-- Positive RMM -> higher-than-expected survival.  
-- Negative RMM -> lower-than-expected survival.  
-- Helps **benchmark trauma center performance** fairly.
+-   Positive RMM -\> higher-than-expected survival.\
+-   Negative RMM -\> lower-than-expected survival.\
+-   Helps **benchmark trauma center performance** fairly.
 
 ## Non-Linear Binning: Why It Matters
 
-- Because $P(Survival)$ is skewed, **non-linear bins** capture the distribution more accurately.  
-- Examples of non-linear binning:  
-  - Quantiles (equal number of patients per bin)  
-  - Clinically meaningful thresholds (e.g., very high risk vs moderate vs low)  
+-   Because $P(Survival)$ is skewed, **non-linear bins** capture the distribution more accurately.\
+-   Examples of non-linear binning:
+    -   Quantiles (equal number of patients per bin)\
+    -   Clinically meaningful thresholds (e.g., very high risk vs moderate vs low)
 
 ## Non-Linear Binning: Why It Matters
 
-- This allows **fairer comparison of observed vs expected outcomes** across risk groups.  
-- Ensures that the benchmarking metrics (RMM, W-score) reflect actual patient risk rather than arbitrary binning.
+-   This allows **fairer comparison of observed vs expected outcomes** across risk groups.\
+-   Ensures that the benchmarking metrics (RMM, W-score) reflect actual patient risk rather than arbitrary binning.
 
 ## Relative Mortality Metric (RMM): Bin-Based Approach
 
-- RMM compares **observed vs. expected mortality** while accounting for patient risk distribution.  
-- Patients are grouped into **bins** based on predicted survival probabilities $P(Survival)$.  
-- Each bin contributes proportionally to the metric based on its width or patient count.
+-   RMM compares **observed vs. expected mortality** while accounting for patient risk distribution.\
+-   Patients are grouped into **bins** based on predicted survival probabilities $P(Survival)$.\
+-   Each bin contributes proportionally to the metric based on its width or patient count.
 
 ## Relative Mortality Metric (RMM): Bin-Based Approach
 
@@ -314,40 +353,41 @@ $$
 
 ## Relative Mortality Metric (RMM): Bin-Based Approach
 
-Where:  
+Where:
 
-- $b = 1, \dots, j$ : **bin index**, from first to last bin  
-- $j$ : total number of bins  
-- $R_b$ : width of bin $b$ or number of patients in the bin  
-- $A_b$ : predicted (expected) deaths in bin $b$  
-- $O_b$ : observed deaths in bin $b$
+-   $b = 1, \dots, j$ : **bin index**, from first to last bin\
+-   $j$ : total number of bins\
+-   $R_b$ : width of bin $b$ or number of patients in the bin\
+-   $A_b$ : predicted (expected) deaths in bin $b$\
+-   $O_b$ : observed deaths in bin $b$
 
 ## Relative Mortality Metric (RMM): Bin-Based Approach
 
-**Interpretation for clinicians:**  
-- Positive RMM -> observed mortality is **lower than expected**, better performance.    
-- Negative RMM -> observed mortality is **higher than expected**, worse performance.  
-- Weighted binning ensures fair comparison across **different patient risk levels**.  
+**Interpretation for clinicians:**\
+- Positive RMM -\> observed mortality is **lower than expected**, better performance.\
+- Negative RMM -\> observed mortality is **higher than expected**, worse performance.\
+- Weighted binning ensures fair comparison across **different patient risk levels**.\
 - Easy interpretation on a scale from -1 (bad) to 1 (great), where 0 is "met expectations".
 
 ## Why Bin Weighting Matters
 
-- Predicted survival probabilities $P(Survival)$ are **not evenly distributed** — most patients may cluster at high or low survival.  
-- Using **weighted bins** ensures that each risk group contributes appropriately to the RMM.  
-- This prevents **over- or under-representation** of patient subgroups in the metric.  
-- RMM thus provides a **clinically meaningful, risk-adjusted benchmark** for trauma center performance.
+-   Predicted survival probabilities $P(Survival)$ are **not evenly distributed** — most patients may cluster at high or low survival.\
+-   Using **weighted bins** ensures that each risk group contributes appropriately to the RMM.\
+-   This prevents **over- or under-representation** of patient subgroups in the metric.\
+-   RMM thus provides a **clinically meaningful, risk-adjusted benchmark** for trauma center performance.
 
 ## Key Takeaways for Clinicians on RMM
 
-- RMM and W-score are **risk-adjusted metrics**, accounting for patient severity and demographics.  
-- M-score linear binning can be misleading because predicted survival probabilities are **skewed**.  
-- Non-linear binning improves interpretation, particularly for **observed vs expected mortality** analyses.  
+-   RMM and W-score are **risk-adjusted metrics**, accounting for patient severity and demographics.\
+-   M-score linear binning can be misleading because predicted survival probabilities are **skewed**.\
+-   Non-linear binning improves interpretation, particularly for **observed vs expected mortality** analyses.
 
 ## Key Takeaways for Clinicians on RMM
 
-- Using these methods allows trauma centers to **compare performance fairly** and identify opportunities for improvement.
+-   Using these methods allows trauma centers to **compare performance fairly** and identify opportunities for improvement.
 
 # Let's see some examples of RMM in action
+
 Iowa!!!
 
 <!-- Setup -->
@@ -407,27 +447,27 @@ trauma_data_2024 <- readr::read_csv(file = trauma_data_path_2024)
 trauma_data <- dplyr::bind_rows(
   trauma_data_2020 |>
     dplyr::mutate(dplyr::across(
-      .cols = tidyselect::matches("_zip$"),
+      .cols = tidyselect::matches("_fips$|_zip$"),
       ~ as.character(.)
     )),
   trauma_data_2021 |>
     dplyr::mutate(dplyr::across(
-      .cols = tidyselect::matches("_zip$"),
+      .cols = tidyselect::matches("_fips$|_zip$"),
       ~ as.character(.)
     )),
   trauma_data_2022 |>
     dplyr::mutate(dplyr::across(
-      .cols = tidyselect::matches("_zip$"),
+      .cols = tidyselect::matches("_fips$|_zip$"),
       ~ as.character(.)
     )),
   trauma_data_2023 |>
     dplyr::mutate(dplyr::across(
-      .cols = tidyselect::matches("_zip$"),
+      .cols = tidyselect::matches("_fips$|_zip$"),
       ~ as.character(.)
     )),
   trauma_data_2024 |>
     dplyr::mutate(dplyr::across(
-      .cols = tidyselect::matches("_zip$"),
+      .cols = tidyselect::matches("_fips$|_zip$"),
       ~ as.character(.)
     ))
 )
@@ -835,10 +875,11 @@ rmm_districts <- trauma_data_clean |>
 ```
 
 # Data used for RMM calculations in Iowa
-- Sample data
-- Removed all missings for the larger dataset
-- Lowest Ps value and found if a patient ever died per injury event
-- n = `{r} total_n` patient encounter sample
+
+-   Sample data
+-   Removed all missings for the larger dataset
+-   Lowest Ps value and found if a patient ever died per injury event
+-   n = `{r} total_n` patient encounter sample
 
 # Data used for RMM calculations in Iowa
 
@@ -848,10 +889,8 @@ rmm_districts <- trauma_data_clean |>
 
 ![](figures/rmm_overall_plot.png){fig-alt="A column chart by year from 2020 through 2024 of the calculated relative mortality metric, with one column per year from 2020 through 2024. 95% confidence intervals are visualized as errorbars with whiskers indicating the estimated error." fig-align="center"}
 
-::: notes
-
+::: {.notes}
 These are overall RMM, and give us overall performance on a statewide, inclusive trauma system, but they do not show us how Iowa did with blunt vs. penetrating, adults vs. peds, or with different primary external cause of injury.
-
 :::
 
 ## Digging deeper
@@ -917,7 +956,7 @@ gt::gtsave(
 
 ![](figures/rmm_summary_gt.png){fig-alt="A statistical table using data from 2020 through 2024 showing the calculated relative mortality metric by probability of survival groups. The start and endpoints for each bin are shown for 8 groups, along with the total alive, total dead, total patients, and the predicted survivors and predicted deaths for each bin. The last column is a horizontal bar graph visualizing the relative mortality metric estimation." fig-align="center"}
 
-::: notes
+::: {.notes}
 In this visual, we see mostly what we would expect, which is that mortality rates increase as the probability of survival decreases.
 
 However, we might like to know why, among patients with \> 88% probabilyt of survival, which the RMM is so low at \~ 0.3 compared to adjacent groups \>= 96%?
@@ -930,11 +969,9 @@ When we examine our data carefully, we can begin to see outcomes that help us in
 ![](figures/rmm_trauma_type_gt.png){fig-alt="A statistical table using data from 2020 through 2024 showing the calculated relative mortality metric by documented trauma type (blunt or penetrating). 95% confidence intervals are shown beside the RMM estimates for each trauma type for each year 2020-2024." fig-align="center"}
 
 ::: {.notes}
-
 Here, we can see more granular detail about state-level performance based on the trauma type.
 
 This could be calculated by county or district and then by type if desired, or as many groups as would be helpful.
-
 :::
 
 ## RMM by Age Group
@@ -942,9 +979,7 @@ This could be calculated by county or district and then by type if desired, or a
 ![](figures/rmm_adults_peds_gt.png){fig-alt="A statistical table using data from 2020 through 2024 showing the calculated relative mortality metric by documented age group (adults or peds). 95% confidence intervals are shown beside the RMM estimates for each of adults and peds for each year 2020-2024." fig-align="center"}
 
 ::: {.notes}
-
-It is also possible to calculate RMM by age group, in this case simply by whether or not the patient had an age in years >= 18 years or < 18 years.
-
+It is also possible to calculate RMM by age group, in this case simply by whether or not the patient had an age in years \>= 18 years or \< 18 years.
 :::
 
 ## RMM by Biological Sex
@@ -952,9 +987,7 @@ It is also possible to calculate RMM by age group, in this case simply by whethe
 ![](figures/rmm_gender_gt.png){fig-alt="A statistical table using data from 2020 through 2024 showing the calculated relative mortality metric by documented biological sex (males or females). 95% confidence intervals are shown beside the RMM estimates for each of males and females for each year 2020-2024." fig-align="center"}
 
 ::: {.notes}
-
 It is also possible to calculate RMM by biological sex, which could be further grouped by age groups to see what disparities may exist among age groups and gender groups.
-
 :::
 
 <!-- Create the sf object for the leaflet map -->
@@ -1126,11 +1159,11 @@ overall_saved_lives <- saved_lives |>
 
 # Takeaways
 
-::: incremental
-- It is not enough to simply review raw survival/mortality outcomes
-- Unadjusted calculation of outcomes will only skew your statistical inference.
-- Mathematically, the field has come far to provide robust solutions for good statistical inference.
-- Risk adjustment is not hard to access, given ample free and open source software (FOSS)
+::: {.incremental}
+-   It is not enough to simply review raw survival/mortality outcomes
+-   Unadjusted calculation of outcomes will only skew your statistical inference.
+-   Mathematically, the field has come far to provide robust solutions for good statistical inference.
+-   Risk adjustment is not hard to access, given ample free and open source software (FOSS)
 :::
 
 # Analyses
