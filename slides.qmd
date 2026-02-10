@@ -1,6 +1,6 @@
 ---
-title: "The Relative Mortality Metric"
-subtitle: "Extending Risk-Adjusted Mortality Measurement"
+title: "Leveraging Underutilized Risk-Adjusted Metrics to Create Targeted Trauma PI Efforts"
+subtitle: "Risk-Adjusted Mortality Measurement"
 author: "Nicolas Foss, Ed.D., MS"
 date: "2026-02-26"
 format: 
