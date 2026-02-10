@@ -167,6 +167,17 @@ $$
 b = \beta_{0} + \beta_{1} \times \text{RTS} + \beta_{2} \times \text{ISS} + \beta_{3} \times \text{AgeIndex}
 $$
 
+# Understanding Probability of Survival
+
+- **Probability of Survival**: The *chance* a patient will survive.
+- **Factors**:
+  - **RTS**: Measures injury severity based on vital signs.
+  - **ISS**: Assesses overall injury severity.
+  - **Age Index**: Considers the patient's age.
+
+- **Formula**: Combines these factors to predict survival.
+  - **Simplified**: Uses a specific calculation to transform these factors into a probability between 0 (no chance) and 1 (certain survival).
+
 ## From Individual to System-Level Benchmark
 
 -   Compute $P(\text{Survival})$ for each patient.\
