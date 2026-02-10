@@ -22,6 +22,7 @@ format:
       data-background-color: white
       data-background-size: cover
       data-background-position: center
+from: markdown+emoji
 execute: 
   echo: false
   warning: false
@@ -36,9 +37,6 @@ execute:
 -   Use common tools to compute both the predicted probability of survival and the W score
 -   Identify ways to use these metrics to inform performance improvement efforts in trauma care
 
-
-
-
 ::: {.notes}
 Remember to mention that data in this presentation pertain only to injuries that were cared for in Iowa hospitals take care of patients from across our borders frequently. Overall statistics reported in the annual trauma report will vary from those reported here.
 :::
@@ -52,13 +50,13 @@ Remember to mention that data in this presentation pertain only to injuries that
 BEMTS epidemiologist (me) is the author and maintainer of the traumar and nemsqar packages We will use traumar during this presentation later when we calculate mortality rates and risk-adjusted mortality You can access the slides directly from the link above Feel free to take a look at the slideshow while we are here!
 :::
 
-# Why Risk Adjustment Matters
+# Risk Adjustment :white_check_mark:
 
 -   Raw mortality rates can mislead comparisons between hospitals.
     -   Example: Hospital A has a raw mortality rate of 5%, while Hospital B has a rate of 10%. At first glance, it seems Hospital A is performing better.
-    -   However, Hospital B treats a higher proportion of older adults and severe trauma cases, which naturally have higher mortality rates.
+    -   However, Hospital B treats more older adults and severe traumas (i.e. patients with higher mortality rates).
 
-# Why Risk Adjustment Matters
+# Risk Adjustment :white_check_mark:
 Basic data example
 
 ```{r demo_hospital_data, include=TRUE}
@@ -71,12 +69,14 @@ hospital_data <- data.frame(
 knitr::kable(x = hospital_data, format = "html")
 ```
 
-# Why Risk Adjustment Matters
+# Risk Adjustment :white_check_mark:
 
 - Centers treat different mixes of patients — older adults, severe trauma, or complex injuries.
-    - Example: Hospital A primarily treats young, healthy individuals with minor injuries, while Hospital B treats older adults with complex injuries. Without adjusting for these differences, comparing their raw mortality rates would be unfair.
+    - Example: Hospital A primarily treats young, healthy individuals with minor injuries.
+    - Hospital B treats older adults with complex injuries. 
+    - Without adjusting for these differences, comparing their raw mortality rates would be unfair.
 
-# Why Risk Adjustment Matters
+# Risk Adjustment :white_check_mark:
 Patient data example
 
 ```{r demo_patient_data, include=TRUE}
@@ -93,12 +93,12 @@ patient_data <- data.frame(
 knitr::kable(x = patient_data, format = "html")
 ```
 
-# Why Risk Adjustment Matters
+# Risk Adjustment :white_check_mark:
 
 - Fair benchmarking requires adjustment for **patient risk**.\
     - Example: By using risk-adjusted metrics, we can account for the differences in patient populations. Considering the higher risk of their patients, it may actually be performing better than we thought, and not significantly different from Hospital A.
 
-# Why Risk Adjustment Matters
+# Risk Adjustment :white_check_mark:
 Example of adjusted rates
 
 ```{r demo_adjusted_mortality, include=TRUE}
@@ -117,12 +117,12 @@ adjusted_mortality_data <- data.frame(
 knitr::kable(x = adjusted_mortality_data, format = "html")
 ```
 
-# Why Risk Adjustment Matters
+# Risk Adjustment :white_check_mark:
 
 - The goal: compare performance **given who each center treats**, not just raw outcomes.
     - Example: After adjusting for patient risk, we find that Hospital B's performance is on par with Hospital A, despite the higher raw mortality rate. This adjustment provides a more accurate and fair comparison of hospital performance.
 
-# Why Risk Adjustment Matters
+# Risk Adjustment :white_check_mark:
 Example of raw and adjusted together
 
 ```{r demo_adjusted_benchmarking, include=TRUE}
@@ -167,15 +167,10 @@ $$
 b = \beta_{0} + \beta_{1} \times \text{RTS} + \beta_{2} \times \text{ISS} + \beta_{3} \times \text{AgeIndex}
 $$
 
-# Understanding Probability of Survival
+# Understanding $P(S)$
 
 - **Probability of Survival**: The *chance* a patient will survive.
-- **Factors**:
-  - **RTS**: Measures injury severity based on vital signs.
-  - **ISS**: Assesses overall injury severity.
-  - **Age Index**: Considers the patient's age.
-
-- **Formula**: Combines these factors to predict survival.
+- **Formula**: Combines factors to predict survival.
   - **Simplified**: Uses a specific calculation to transform these factors into a probability between 0 (no chance) and 1 (certain survival).
 
 ## From Individual to System-Level Benchmark
