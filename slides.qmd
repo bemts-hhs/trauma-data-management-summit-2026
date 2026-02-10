@@ -41,7 +41,6 @@ execute:
 Remember to mention that data in this presentation pertain only to injuries that were cared for in Iowa hospitals take care of patients from across our borders frequently. Overall statistics reported in the annual trauma report will vary from those reported here.
 :::
 
-
 # Accessing this presentation
 
 ![](figures/qrcode.svg){fig-align="center" fig-alt="QR Code for the slides to this presentation."}
@@ -389,7 +388,6 @@ Where:
 -   Using these methods allows trauma centers to **compare performance fairly** and identify opportunities for improvement.
 
 # Let's see some examples of RMM in action
-
 Iowa!!!
 
 <!-- Setup -->
