@@ -1,5 +1,5 @@
 ---
-title: "Leveraging Underutilized Risk-Adjusted Metrics to Create Targeted Trauma PI Efforts"
+title: "Leveraging Risk-Adjusted Metrics for Targeted Trauma PI Efforts"
 subtitle: "Risk-Adjusted Mortality Measurement"
 author: "Nicolas Foss, Ed.D., MS"
 date: "2026-02-26"
