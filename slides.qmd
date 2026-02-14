@@ -279,12 +279,6 @@ $$
 -   **Problem:** $P(Survival)$ from logistic regression is **not normally distributed** — many patients cluster near very high or very low survival probabilities.\
 -   Linear bins overrepresent some risk groups and underrepresent others, which can distort observed vs expected comparisons.
 
-## Distribution of Predicted Survival
-
-Empirical data show that trauma patients are **not evenly distributed** across predicted survival probabilities.
-
-Most patients presenting to trauma centers have a **very high likelihood of survival**.
-
 ## MTOS Distribution
 
 | Ps Range    | Proportion of Patients |
@@ -305,12 +299,6 @@ Most patients presenting to trauma centers have a **very high likelihood of surv
 
 -   This means two centers could have identical W-scores even if one performs **much better with severely injured patients**.
 
-## Assumption vs. Reality
-
--   The W-score assumes that $P(Survival)$ values are **linearly distributed** among patients across the 0–1 range.\
--   However, observed data show that $P(Survival)$ is **highly skewed**, with most patients near 1.0.\
--   Therefore, linear bins or evenly spaced $P(Survival)$ categories **overweight low-acuity patients** and **underweight critical cases**.
-
 ## Take-Home Message on the W Score
 
 -   W-score alone provides a **partial picture** of trauma center performance.\
@@ -321,12 +309,6 @@ Most patients presenting to trauma centers have a **very high likelihood of surv
 -   Napoli et al. (2017)
 -   The RMM is a **risk-adjusted metric** that compares observed mortality to predicted mortality.
 -   It accounts for patient-level severity, physiology, and demographics using previously validated coefficients.
-
-# Relative Mortality Metric (RMM)
-
--   Positive RMM -\> higher-than-expected survival.\
--   Negative RMM -\> lower-than-expected survival.\
--   Helps **benchmark trauma center performance** fairly.
 
 ## Non-Linear Binning: Why It Matters
 
@@ -383,9 +365,11 @@ Where:
 -   M-score linear binning can be misleading because predicted survival probabilities are **skewed**.\
 -   Non-linear binning improves interpretation, particularly for **observed vs expected mortality** analyses.
 
-## Key Takeaways for Clinicians on RMM
+::: {.notes}
 
--   Using these methods allows trauma centers to **compare performance fairly** and identify opportunities for improvement.
+Using these methods allows trauma centers to **compare performance fairly** and identify opportunities for improvement.
+
+:::
 
 # Let's see some examples of RMM in action
 Iowa!!!
@@ -555,6 +539,71 @@ gt::gtsave(
   zoom = 2 # magnifies rendering (crisper text)
 )
 
+```
+
+<!-- Calculate W score over the years -->
+```{r w_calc}
+
+#| label: w_calc
+
+w_overall <- trauma_patients |>
+  tidyr::nest(-Year) |>
+  dplyr::mutate(
+    performance = purrr::map(
+      .x = data,
+      ~ traumar::trauma_performance(
+        df = .x,
+        Ps_col = Probability_of_Survival,
+        outcome_col = Death,
+        z_method = "survival"
+      )
+    )
+  ) |>
+  dplyr::select(-data) |>
+  tidyr::unnest(performance)
+
+# patient estimates
+patients_saved <- paste0(
+  "* Patients saved that were predicted to die in order of years: ",
+  paste0(round(x = w_overall$Patient_Estimate), collapse = ", "),
+  "."
+)
+
+# create a bar plot of the W score for each year
+# plot the RMM data over time
+w_overall_plot <- w_overall |>
+  ggplot2::ggplot(ggplot2::aes(
+    x = Year,
+    y = W_Score,
+    fill = "cornflowerblue",
+    label = round(x = W_Score, digits = 2)
+  )) +
+  ggplot2::geom_col(
+    alpha = 0.25,
+    width = 0.6,
+    position = ggplot2::position_dodge(width = 0.75)
+  ) +
+  ggplot2::geom_text(
+    ggplot2::aes(y = 0.05),
+    family = "Work Sans",
+    size = 8
+  ) +
+  ggthemes::scale_fill_tableau() +
+  ggplot2::guides(fill = "none") +
+  ggplot2::labs(
+    x = "",
+    y = "W-Score",
+    caption = patients_saved
+  ) +
+  traumar::theme_cleaner(base_size = 20) +
+  ggplot2::theme(plot.caption = ggplot2::element_text(size = 15))
+
+# save the ggplot object
+ggplot2::ggsave(
+  filename = "w_overall_plot.png",
+  plot = w_overall_plot,
+  path = figures
+)
 ```
 
 <!-- Calculate RMM at different levels of analysis -->
@@ -852,26 +901,6 @@ ggplot2::ggsave(
   path = figures
 )
 
-# calculate RMM by emergency preparedness districts
-rmm_districts <- trauma_data_clean |>
-  dplyr::filter(
-    !is.na(Probability_of_Survival_Calc),
-    !is.infinite(Probability_of_Survival_Calc),
-    !is.na(Death)
-  ) |>
-  dplyr::distinct(Unique_Incident_ID, .keep_all = TRUE) |>
-  dplyr::mutate(Survival = 1 - Death) |>
-  traumar::rmm(
-    Ps_col = Probability_of_Survival_Calc,
-    outcome_col = Survival,
-    group_vars = "County",
-    bootstrap_ci = FALSE,
-    Divisor1 = 3.5,
-    Divisor2 = 3.5,
-    seed = 10232015
-  ) |>
-  dplyr::filter(!is.na(County))
-
 ```
 
 # Data used for RMM calculations in Iowa
@@ -885,12 +914,24 @@ rmm_districts <- trauma_data_clean |>
 
 ![](figures/total_years.png){fig-alt="A statistical table showing counts of patient records samples by year used in the relative mortality metric calculations for Iowa." fig-align="center"}
 
+# State-level W Score 2020-2024
+
+![](figures/w_overall_plot.png){fig-alt="A column chart by year from 2020 through 2024 of the calculated W-Score, with one column per year from 2020 through 2024. Count of patients that lived that were predicted to die are shown in the caption below the chart. Each column has the printed W-Score for each given year." fig-align="center"}
+
+::: {.notes}
+
+We examine first the W-Score, and then we will see how the RMM helps to provide a better picture given that it is not overly weighted by patients that are predicted to live.
+
+:::
+
 # State-level RMM 2020-2024
 
 ![](figures/rmm_overall_plot.png){fig-alt="A column chart by year from 2020 through 2024 of the calculated relative mortality metric, with one column per year from 2020 through 2024. 95% confidence intervals are visualized as errorbars with whiskers indicating the estimated error." fig-align="center"}
 
-::: {.notes}
+::: notes
+
 These are overall RMM, and give us overall performance on a statewide, inclusive trauma system, but they do not show us how Iowa did with blunt vs. penetrating, adults vs. peds, or with different primary external cause of injury.
+
 :::
 
 ## Digging deeper
@@ -994,36 +1035,20 @@ It is also possible to calculate RMM by biological sex, which could be further g
 
 #| label: lives_saved_estimation
 
-# estimate # of fall patients lives saved over what was expected 2020-2024
+# estimate # of patients lives saved over what was expected 2020-2024
 
-saved_lives <- trauma_data_clean |>
-  dplyr::filter(!is.na(Probability_of_Survival_Calc), !is.na(Death)) |>
-  dplyr::distinct(Unique_Incident_ID, .keep_all = TRUE) |>
-  dplyr::group_split(Year) |>
-  purrr::map(\(.x) {
-    year_val <- unique(.x$Year)
-    result <- traumar::trauma_performance(
-      df = .x,
-      Ps_col = Probability_of_Survival_Calc,
-      outcome_col = Death,
-      z_method = "survival"
-    )
-    dplyr::mutate(result, Year = year_val, .before = 1)
-  }) |>
-  purrr::list_rbind()
-
-# get predicted falls deaths
-predicted_deaths <- saved_lives |>
+# get predicted deaths
+predicted_deaths <- w_overall |>
   dplyr::summarize(total = round(sum(Predicted_Deaths))) |>
   dplyr::pull(total)
 
 # get observed deaths
-observed_deaths <- saved_lives |>
+observed_deaths <- w_overall |>
   dplyr::summarize(total = sum(N_Deaths)) |>
   dplyr::pull(total)
 
 # get overall saved lives
-overall_saved_lives <- saved_lives |>
+overall_saved_lives <- w_overall |>
   dplyr::summarize(total = round(sum(Patient_Estimate))) |>
   dplyr::pull(total)
 
